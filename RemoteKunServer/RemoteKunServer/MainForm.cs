@@ -24,18 +24,18 @@ namespace RemoteKunServer
         static class Flag 
         {
             static object lockObj = new object();
-            static bool sendMonitorFlg; // 画面送信中
-            static public bool SendMonitorFlg 
+            static bool isSendingMonitor ; // 画面送信中
+            static public bool IsSendingMonitor 
             {
-                get { lock(lockObj) return sendMonitorFlg; }
-                set { lock (lockObj) sendMonitorFlg = value; }
+                get { lock(lockObj) return isSendingMonitor; }
+                set { lock (lockObj) isSendingMonitor = value; }
             }
         }
 
         // 受信命令の種類
         // 座標なし命令の場合 命令の種類:
         // 座標あり命令の場合 命令の種類:X座標:Y座標
-        static class OrderKind
+        static class CommandKind
         {
             public static readonly string MouseWheelUp = "MouseWheelUp:";                    // マウスホイール上
             public static readonly string MouseWheelDown = "MouseWheelDown:";                // マウスホイール下
@@ -64,7 +64,7 @@ namespace RemoteKunServer
         }
 
         // 命令を受信
-        async Task<string> GetOrder(int getBuffSize = 128, int delay = 100)
+        async Task<string> getCommand(int getBuffSize = 128, int delay = 100)
         {
             byte[] getBuff = new byte[getBuffSize];
             int readByteSize; // 受け取ったメッセージのサイズ
@@ -84,7 +84,7 @@ namespace RemoteKunServer
         }
 
         // 画面送信
-        async Task sendDesktopAsync()
+        async Task sendMonitorAsync()
         {
             byte[] sendBuff = null;
             Bitmap bm = new Bitmap(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height); 
@@ -95,37 +95,37 @@ namespace RemoteKunServer
         }
 
         // 受信命令の実行
-        void GetOrderRun(string getOrder)
+        void GetCommandRun(string getCommand)
         {
-            Regex orderParameter = new Regex(@"^[a-zA-Z]+\:\d+\:\d+$");
+            Regex commandParameter = new Regex(@"^[a-zA-Z]+\:\d+\:\d+$");
 
             // 座標付きの命令に使う
             string[] rsvStr;
             int pointX, pointY;
-            string getOdrPoint = orderParameter.Match(getOrder).ToString();
+            string getOdrPoint = commandParameter.Match(getCommand).ToString();
 
             // テキストメッセージを受信した場合
-            if (getOrder.StartsWith(OrderKind.Message)) 
+            if (getCommand.StartsWith(CommandKind.Message)) 
             {
-                Invoke(new Action(() => msgListBox.Items.Add(getOrder.Replace(OrderKind.Message, ""))));
+                Invoke(new Action(() => msgListBox.Items.Add(getCommand.Replace(CommandKind.Message, ""))));
                 return;
             }
 
             // デスクトップ画面送信終了命令
-            if (getOrder.StartsWith(OrderKind.StopGetMonitor)) 
+            if (getCommand.StartsWith(CommandKind.StopGetMonitor)) 
             {
-                Flag.SendMonitorFlg = false;
+                Flag.IsSendingMonitor  = false;
                 return;
             }
 
             // デスクトップ画面送信開始命令
-            if (getOrder.StartsWith(OrderKind.GetMonitor)) 
+            if (getCommand.StartsWith(CommandKind.GetMonitor)) 
             {
-                Flag.SendMonitorFlg = true;
+                Flag.IsSendingMonitor  = true;
                 Task.Run(async () => {
-                    while (Flag.SendMonitorFlg)
+                    while (Flag.IsSendingMonitor )
                     {
-                        await sendDesktopAsync();
+                        await sendMonitorAsync();
                         await Task.Delay(100);
                     }
                 });
@@ -133,7 +133,7 @@ namespace RemoteKunServer
             }
 
             // マウスホイール上方向命令
-            if (getOrder.StartsWith(OrderKind.MouseWheelUp))
+            if (getCommand.StartsWith(CommandKind.MouseWheelUp))
             {
                 WindowsAPI.INPUT input = new WindowsAPI.INPUT
                 {
@@ -155,7 +155,7 @@ namespace RemoteKunServer
             }
 
             // マウスホイール下方向命令
-            if (getOrder.StartsWith(OrderKind.MouseWheelDown))
+            if (getCommand.StartsWith(CommandKind.MouseWheelDown))
             {
                 WindowsAPI.INPUT input = new WindowsAPI.INPUT
                 {
@@ -177,7 +177,7 @@ namespace RemoteKunServer
             }
 
             // 座標付き命令の書式が一致しない場合
-            if (!orderParameter.IsMatch(getOrder)) 
+            if (!commandParameter.IsMatch(getCommand)) 
                 return;
 
             rsvStr = getOdrPoint.Split(':');
@@ -185,14 +185,14 @@ namespace RemoteKunServer
             pointY = Convert.ToInt32(rsvStr[(int)MousePoint.Y]);
 
             // マウス移動命令受信
-            if (getOrder.StartsWith(OrderKind.MonitorMouseMove))
+            if (getCommand.StartsWith(CommandKind.MonitorMouseMove))
             {
                 WindowsAPI.SetCursorPos(pointX, pointY);
                 return;
             }
 
             // 左クリック(押す)命令受信
-            if (getOrder.StartsWith(OrderKind.MonitorClickLeftDown))
+            if (getCommand.StartsWith(CommandKind.MonitorClickLeftDown))
             {
                 WindowsAPI.SetCursorPos(pointX, pointY);
                 WindowsAPI.mouse_event(WindowsAPI.MouseEvent.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
@@ -200,7 +200,7 @@ namespace RemoteKunServer
             }
 
             // 左クリック(離す)命令受信
-            if (getOrder.StartsWith(OrderKind.MonitorClickLeftUp))
+            if (getCommand.StartsWith(CommandKind.MonitorClickLeftUp))
             {
                 WindowsAPI.SetCursorPos(pointX, pointY);
                 WindowsAPI.mouse_event(WindowsAPI.MouseEvent.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
@@ -208,7 +208,7 @@ namespace RemoteKunServer
             }
 
             // 右クリック(押す)命令受信
-            if (getOrder.StartsWith(OrderKind.MonitorClickRightDown))
+            if (getCommand.StartsWith(CommandKind.MonitorClickRightDown))
             {
                 WindowsAPI.SetCursorPos(pointX, pointY);
                 WindowsAPI.mouse_event(WindowsAPI.MouseEvent.MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0);
@@ -216,7 +216,7 @@ namespace RemoteKunServer
             }
 
             // 左クリック(離す)命令受信
-            if (getOrder.StartsWith(OrderKind.MonitorClickRightUp))
+            if (getCommand.StartsWith(CommandKind.MonitorClickRightUp))
             {
                 WindowsAPI.SetCursorPos(pointX, pointY);
                 WindowsAPI.mouse_event(WindowsAPI.MouseEvent.MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0);
@@ -234,14 +234,15 @@ namespace RemoteKunServer
                     tl = new TcpListener(System.Net.IPAddress.Any, 12345); // 全てのアドレスから受け付ける
                     tl.Start();
                     tc = await tl.AcceptTcpClientAsync(); // 接続確立
+                    tl.Stop();
                     msgListBox.Items.Add("接続完了");
                     ns = tc.GetStream();
                     await Task.Run(async () => {
                         while (true)
                         {
-                            string res = await GetOrder(); // クライアントから命令を受け取る
+                            string res = await getCommand(); // クライアントから命令を受け取る
                             if (res == null) continue; // 命令がなければ繰り返す
-                            GetOrderRun(res); // 受信した命令を実行
+                            GetCommandRun(res); // 受信した命令を実行
                         }
                     });
                 }

@@ -36,7 +36,7 @@
             this.portTextBox = new System.Windows.Forms.TextBox();
             this.msgTextBox = new System.Windows.Forms.TextBox();
             this.sendMsgButton = new System.Windows.Forms.Button();
-            this.desktopReqButton = new System.Windows.Forms.Button();
+            this.monitorReqButton = new System.Windows.Forms.Button();
             this.label2 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.statusLabel = new System.Windows.Forms.Label();
@@ -121,15 +121,15 @@
             this.sendMsgButton.UseVisualStyleBackColor = true;
             this.sendMsgButton.Click += new System.EventHandler(this.sendMsgButton_Click);
             // 
-            // desktopReqButton
+            // monitorReqButton
             // 
-            this.desktopReqButton.Location = new System.Drawing.Point(584, 4);
-            this.desktopReqButton.Name = "desktopReqButton";
-            this.desktopReqButton.Size = new System.Drawing.Size(142, 23);
-            this.desktopReqButton.TabIndex = 9;
-            this.desktopReqButton.Text = "画面リアルタイムキャプチャ";
-            this.desktopReqButton.UseVisualStyleBackColor = true;
-            this.desktopReqButton.Click += new System.EventHandler(this.desktopReqButton_Click);
+            this.monitorReqButton.Location = new System.Drawing.Point(584, 4);
+            this.monitorReqButton.Name = "monitorReqButton";
+            this.monitorReqButton.Size = new System.Drawing.Size(142, 23);
+            this.monitorReqButton.TabIndex = 9;
+            this.monitorReqButton.Text = "画面リアルタイムキャプチャ";
+            this.monitorReqButton.UseVisualStyleBackColor = true;
+            this.monitorReqButton.Click += new System.EventHandler(this.monitorReqButton_Click);
             // 
             // label2
             // 
@@ -167,7 +167,7 @@
             this.Controls.Add(this.statusLabel);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.label2);
-            this.Controls.Add(this.desktopReqButton);
+            this.Controls.Add(this.monitorReqButton);
             this.Controls.Add(this.sendMsgButton);
             this.Controls.Add(this.msgTextBox);
             this.Controls.Add(this.portTextBox);
@@ -196,7 +196,7 @@
         private System.Windows.Forms.TextBox portTextBox;
         private System.Windows.Forms.TextBox msgTextBox;
         private System.Windows.Forms.Button sendMsgButton;
-        private System.Windows.Forms.Button desktopReqButton;
+        private System.Windows.Forms.Button monitorReqButton;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Label statusLabel;

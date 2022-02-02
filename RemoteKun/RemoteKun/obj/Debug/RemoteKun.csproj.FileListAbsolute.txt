@@ -1,0 +1,11 @@
+C:\Users\Main-PC\Desktop\github\RemoteKun\RemoteKun\RemoteKun\bin\Debug\RemoteKun.exe.config
+C:\Users\Main-PC\Desktop\github\RemoteKun\RemoteKun\RemoteKun\bin\Debug\RemoteKun.exe
+C:\Users\Main-PC\Desktop\github\RemoteKun\RemoteKun\RemoteKun\bin\Debug\RemoteKun.pdb
+C:\Users\Main-PC\Desktop\github\RemoteKun\RemoteKun\RemoteKun\obj\Debug\RemoteKun.csproj.AssemblyReference.cache
+C:\Users\Main-PC\Desktop\github\RemoteKun\RemoteKun\RemoteKun\obj\Debug\RemoteKun.csproj.SuggestedBindingRedirects.cache
+C:\Users\Main-PC\Desktop\github\RemoteKun\RemoteKun\RemoteKun\obj\Debug\RemoteKun.MainForm.resources
+C:\Users\Main-PC\Desktop\github\RemoteKun\RemoteKun\RemoteKun\obj\Debug\RemoteKun.Properties.Resources.resources
+C:\Users\Main-PC\Desktop\github\RemoteKun\RemoteKun\RemoteKun\obj\Debug\RemoteKun.csproj.GenerateResource.cache
+C:\Users\Main-PC\Desktop\github\RemoteKun\RemoteKun\RemoteKun\obj\Debug\RemoteKun.csproj.CoreCompileInputs.cache
+C:\Users\Main-PC\Desktop\github\RemoteKun\RemoteKun\RemoteKun\obj\Debug\RemoteKun.exe
+C:\Users\Main-PC\Desktop\github\RemoteKun\RemoteKun\RemoteKun\obj\Debug\RemoteKun.pdb

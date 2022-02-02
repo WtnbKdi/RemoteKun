@@ -18,8 +18,8 @@ namespace RemoteKun
         public MainForm()
         {
             InitializeComponent();
-            LockFlg.ConectFlg = false;
-            LockFlg.SendMonitorFlg = false;
+            Flag.IsConnected = false;
+            Flag.IsReceivingMonitor = false;
             Res = new Resolution();
             this.pictureBox.MouseWheel += new System.Windows.Forms.MouseEventHandler(this.pictureBox_MouseWheel);
         }
@@ -30,10 +30,10 @@ namespace RemoteKun
             public static readonly string Port = "正しいポート番号を入力してください。";
         }
 
-        class Oder
+        class Command
         {
-            public Oder() { }
-            public Oder(string type) { Type = type; }
+            public Command() { }
+            public Command(string type) { Type = type; }
             public string Type { get; private set; }
         }
 
@@ -53,7 +53,7 @@ namespace RemoteKun
 
 
         // サーバーへ対しての命令, 送信の種類
-        class OderKind
+        class CommandKind
         {
             public static readonly string MouseWheelUp = "MouseWheelUp:";                    // マウスホイール上
             public static readonly string MouseWheelDown = "MouseWheelDown:";                // マウスホイール下
@@ -69,23 +69,29 @@ namespace RemoteKun
             public static readonly string MonitorDblClickRight = "MonitorClickDblRight:";    // 右ダブルクリック
         }
 
-        static class LockFlg
+        static class Flag
         {
             static object lockObj = new object();
-
-            static bool conectFlg;
-            static bool rsvMonitorFlg;
+            static bool isConnecting;
+            static bool isConnected;
+            static bool isReceivingMonitor;
             // モニター受信中
-            static public bool SendMonitorFlg
+            static public bool IsReceivingMonitor
             {
-                get { lock (lockObj) return rsvMonitorFlg; }
-                set { lock (lockObj) rsvMonitorFlg = value; }
+                get { lock (lockObj) return isReceivingMonitor; }
+                set { lock (lockObj) isReceivingMonitor = value; }
+            }
+            // 接続中
+            static public bool IsConnecting
+            {
+                get { lock (lockObj) return isConnecting; }
+                set { lock (lockObj) isConnecting = value; }
             }
             // 接続確立
-            static public bool ConectFlg
+            static public bool IsConnected
             {
-                get { lock (lockObj) return conectFlg; }
-                set { lock (lockObj) conectFlg = value; }
+                get { lock (lockObj) return isConnected; }
+                set { lock (lockObj) isConnected = value; }
             }
         }
 
@@ -111,8 +117,9 @@ namespace RemoteKun
         void ClientReset()
         {
             pictureBox.Image = null;
-            LockFlg.SendMonitorFlg = false;
-            LockFlg.ConectFlg = false;
+            Flag.IsReceivingMonitor = false;
+            Flag.IsConnected = false;
+            Flag.IsConnecting = false;
             startButton.Text = "開始";
             client?.Close();
             client?.Dispose();
@@ -122,12 +129,12 @@ namespace RemoteKun
         // 開始
         private async void startButton_Click(object sender, EventArgs e)
         {
-            LockFlg.ConectFlg = LockFlg.ConectFlg ? false : true;
-            if (LockFlg.ConectFlg) startButton.Text = "終了";
-            else startButton.Text = "開始";
-
+            Flag.IsConnecting = Flag.IsConnecting ? false : true;
             string ipAddr = ipAddrTextBox.Text;
             string port = portTextBox.Text;
+
+            if (Flag.IsConnecting) startButton.Text = "終了";
+            else startButton.Text = "開始";
 
             if (!CheckString.ipAddr(ipAddr))
             {
@@ -141,31 +148,33 @@ namespace RemoteKun
                 return;
             }
 
-            if (!LockFlg.ConectFlg)
+            if (!Flag.IsConnecting)
             {
                 ClientReset();
                 return;
             }
 
-            try
-            {
-                client = new TcpClient();
-                await client.ConnectAsync(ipAddr, Convert.ToInt32(port));
-                statusLabel.Text = "サーバーに接続しました。";
-            }
+            client = new TcpClient();
+
+            try { await client.ConnectAsync(ipAddr, Convert.ToInt32(port)); }
             catch (System.Net.Sockets.SocketException)
             {
                 statusLabel.Text = "サーバーに接続できませんでした。";
                 ClientReset();
+                return;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                statusLabel.Text = ex.Message;
                 ClientReset();
+                return;
             }
+            statusLabel.Text = "サーバーに接続しました。";
+            Flag.IsConnected = true;
         }
 
-        // メッセージ送信
-        async Task sendMessageAsync(Oder ptl, string sendMsg = null)
+        // 命令送信
+        async Task sendOrderAsync(Command ptl, string sendMsg = null)
         {
             string msg = ptl.Type + sendMsg;
             byte[] sendBuff = Encoding.UTF8.GetBytes(msg);
@@ -176,57 +185,59 @@ namespace RemoteKun
         // メッセージ送信ボタン
         private async void sendMsgButton_Click(object sender, EventArgs e)
         {
-            if (!LockFlg.ConectFlg) return;
-            await sendMessageAsync(new Oder(OderKind.Message), msgTextBox.Text);
+            if (!Flag.IsConnected) return;
+            await sendOrderAsync(new Command(CommandKind.Message), msgTextBox.Text);
         }
 
         // 画面リクエストボタン
-        private async void desktopReqButton_Click(object sender, EventArgs e)
+        private async void monitorReqButton_Click(object sender, EventArgs e)
         {
-            if (!LockFlg.ConectFlg) return;
+            if (!Flag.IsConnected) return;
 
             int sendSize = 8 * 32 * 20000; 
-            byte[] image;
-            
-            LockFlg.SendMonitorFlg = LockFlg.SendMonitorFlg ? false : true;
-            if(!LockFlg.SendMonitorFlg)
+            byte[] image = null;
+            Bitmap monitor;
+
+            Flag.IsReceivingMonitor = Flag.IsReceivingMonitor ? false : true;
+            if(!Flag.IsReceivingMonitor)
             {
                 pictureBox.Enabled = false;
-                await sendMessageAsync(new Oder(OderKind.StopGetMonitor));
+                await sendOrderAsync(new Command(CommandKind.StopGetMonitor));
                 return;
             }
-
             pictureBox.Enabled = true;
             await Task.Run(async () => {
-                await sendMessageAsync(new Oder(OderKind.GetMonitor)); // 画面をリクエスト
+                await sendOrderAsync(new Command(CommandKind.GetMonitor)); // 画面をリクエスト
                 try
                 {
-                    while (LockFlg.SendMonitorFlg)
+                    while (Flag.IsReceivingMonitor)
                     {
                         image = new byte[sendSize];
                         await ns.ReadAsync(image, 0, image.Length);
-                        Bitmap bm = new Bitmap(new MemoryStream(image));
-                        bm.Save(new MemoryStream(image), System.Drawing.Imaging.ImageFormat.Jpeg);
-                        pictureBox.Image = bm;
+                        monitor = new Bitmap(new MemoryStream(image));
+                        monitor.Save(new MemoryStream(image), System.Drawing.Imaging.ImageFormat.Jpeg);
+                        pictureBox.Image = monitor;
                     }
                 }
                 catch (System.IO.IOException) 
-                { 
-                    Invoke(new Action(() => { 
-                        statusLabel.Text = "通信が切断されました。";
-                    }));
+                {
+                    Invoke(new Action(() => statusLabel.Text = "通信が切断されました。"));
+                    ClientReset();
+                    return;
                 }
                 catch (System.InvalidOperationException)
                 {
-                    Invoke(new Action(() => {
-                        statusLabel.Text = "通信が確立されていません。";
-                    }));
-                }
-                catch (Exception) { }
-                finally
-                {
+                    Invoke(new Action(() => statusLabel.Text = "通信が確立されていません。"));
                     ClientReset();
+                    return;
                 }
+                catch (Exception ex) 
+                {
+                    Invoke(new Action(() => statusLabel.Text = ex.Message));
+                    ClientReset();
+                    return;
+                }
+                finally { GC.Collect(); }
             });
         }
 
@@ -238,43 +249,47 @@ namespace RemoteKun
             return (Convert.ToString(resultX), Convert.ToString(resultY));
         }
 
-        async Task SendPointAsync(string protocol, MouseEventArgs e)
+        // 座標送信
+        async Task SendPointAsync(string Command, MouseEventArgs e)
         {
             (string x, string y) = ConvertPoint(e.X, e.Y);
-            await sendMessageAsync(new Oder(protocol), $"{x}:{y}");
+            await sendOrderAsync(new Command(Command), $"{x}:{y}");
         }
 
+        // ピクチャーボックス上でマウスボタンを押す
         private async void pictureBox_MouseDown(object sender, MouseEventArgs e)
         {
-            if (!LockFlg.ConectFlg) return;
-            if (MouseButtons.None != (e.Button & MouseButtons.Left))
-                await SendPointAsync(OderKind.MonitorClickLeftDown, e);
-            if (MouseButtons.None != (e.Button & MouseButtons.Right))
-                await SendPointAsync(OderKind.MonitorClickRightDown, e);
+            if (!Flag.IsConnected) return;
+            if (MouseButtons.None != (e.Button & MouseButtons.Left)) // 左クリックの場合
+                await SendPointAsync(CommandKind.MonitorClickLeftDown, e);
+            if (MouseButtons.None != (e.Button & MouseButtons.Right)) 
+                await SendPointAsync(CommandKind.MonitorClickRightDown, e);
         }
-
+        // ピクチャーボックス上でマウスボタンを離す
         private async void pictureBox_MouseUp(object sender, MouseEventArgs e)
         {
-            if (!LockFlg.ConectFlg) return;
+            if (!Flag.IsConnected) return;
             if (MouseButtons.None != (e.Button & MouseButtons.Left))
-                await SendPointAsync(OderKind.MonitorClickLeftUp, e);
+                await SendPointAsync(CommandKind.MonitorClickLeftUp, e);
             if (MouseButtons.None != (e.Button & MouseButtons.Right))
-                await SendPointAsync(OderKind.MonitorClickRightUp, e);
+                await SendPointAsync(CommandKind.MonitorClickRightUp, e);
         }
 
+        // ピクチャーボックス上でマウスポインタを移動させたとき
         private async void pictureBox_MouseMove(object sender, MouseEventArgs e)
         {
-            if (!LockFlg.ConectFlg) return;
-            await SendPointAsync(OderKind.MonitorMouseMove, e);
+            if (!Flag.IsConnected) return;
+            await SendPointAsync(CommandKind.MonitorMouseMove, e);
         }
 
+        // ピクチャーボックス上でマウスホイールを動かしたとき
         private async void pictureBox_MouseWheel(object sender, MouseEventArgs e)
         {
-            if (!LockFlg.ConectFlg) return;
+            if (!Flag.IsConnected) return;
             if (e.Delta < 0)
-                await sendMessageAsync(new Oder(OderKind.MouseWheelDown));
+                await sendOrderAsync(new Command(CommandKind.MouseWheelDown));
             else
-                await sendMessageAsync(new Oder(OderKind.MouseWheelUp));
+                await sendOrderAsync(new Command(CommandKind.MouseWheelUp));
         }
     }
 }

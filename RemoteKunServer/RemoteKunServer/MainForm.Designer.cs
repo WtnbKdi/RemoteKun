@@ -33,18 +33,18 @@
             // 
             // msgListBox
             // 
+            this.msgListBox.Font = new System.Drawing.Font("MS UI Gothic", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.msgListBox.FormattingEnabled = true;
-            this.msgListBox.ItemHeight = 12;
             this.msgListBox.Location = new System.Drawing.Point(12, 12);
             this.msgListBox.Name = "msgListBox";
-            this.msgListBox.Size = new System.Drawing.Size(457, 196);
+            this.msgListBox.Size = new System.Drawing.Size(753, 277);
             this.msgListBox.TabIndex = 1;
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(482, 224);
+            this.ClientSize = new System.Drawing.Size(777, 305);
             this.Controls.Add(this.msgListBox);
             this.Name = "MainForm";
             this.Text = "RemoteKunServer";
