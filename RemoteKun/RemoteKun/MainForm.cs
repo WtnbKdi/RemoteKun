@@ -13,41 +13,60 @@ namespace RemoteKun
     {
         TcpClient client = null;
         NetworkStream ns = null;
-        MousePoint mPoint = null;
-        class MousePoint
-        {
-            public int X { get; set; } = 0;
-            public int Y { get; set; } = 0;
-        }
+        Resolution Res; // 画面解像度 
 
+        public MainForm()
+        {
+            InitializeComponent();
+            LockFlg.ConectFlg = false;
+            LockFlg.SendMonitorFlg = false;
+            Res = new Resolution();
+            this.pictureBox.MouseWheel += new System.Windows.Forms.MouseEventHandler(this.pictureBox_MouseWheel);
+        }
+        
         static class ErrorMessage
         {
             public static readonly string IPAddr = "正しいIPアドレスを入力してください。";
             public static readonly string Port = "正しいポート番号を入力してください。";
         }
 
-        class Protocol
+        class Oder
         {
-            public Protocol() { }
-            public Protocol(string type) { Type = type; }
+            public Oder() { }
+            public Oder(string type) { Type = type; }
             public string Type { get; private set; }
-            
         }
 
-        // サーバーへ対しての命令, 送信の種類
-        class TypeProtocol
+
+        class Resolution 
         {
-            public static readonly string MonitorMouseMove = "MouseMove:"; // マウス移動(未)
-            static string monitorClick = "MonitorClick"; // マウスクリック
-            public static readonly string Message = "Message:"; // メッセージ
-            public static readonly string GetMonitor = "GetMonitor:"; // 画面要求命令
-            public static readonly string StopGetMonitor = "StopGetMonitor:"; // 画面送信停止命令
-            public static readonly string MonitorClickLeftDown = monitorClick + "LeftDown:"; // 左クリック押したとき
-            public static readonly string MonitorClickLeftUp = monitorClick + "LeftUp:"; // 左クリック離したとき
-            public static readonly string MonitorClickRightDown = monitorClick + "RightDown:"; // 右クリック押したとき
-            public static readonly string MonitorClickRightUp = monitorClick + "RightUp:";  // 右クリック離したとき
-            public static readonly string MonitorDblClickLeft = monitorClick + "DblLeft:"; // 左ダブルクリック
-            public static readonly string MonitorDblClickRight = monitorClick + "DblRight:";  // 右ダブルクリック
+            // 画面解像度 フォルト1920x1080
+            public int X { get; } = 1920;
+            public int Y { get; } = 1080;
+            public Resolution() { }
+            public Resolution(int x, int y) 
+            {
+                this.X = x;
+                this.Y = y;
+            }
+        }
+
+
+        // サーバーへ対しての命令, 送信の種類
+        class OderKind
+        {
+            public static readonly string MouseWheelUp = "MouseWheelUp:";                    // マウスホイール上
+            public static readonly string MouseWheelDown = "MouseWheelDown:";                // マウスホイール下
+            public static readonly string MonitorMouseMove = "MouseMove:";                   // マウス移動
+            public static readonly string Message = "Message:";                              // メッセージ
+            public static readonly string GetMonitor = "GetMonitor:";                        // 画面要求命令
+            public static readonly string StopGetMonitor = "StopGetMonitor:";                // 画面送信停止命令
+            public static readonly string MonitorClickLeftDown = "MonitorClickLeftDown:";    // 左クリック押したとき
+            public static readonly string MonitorClickLeftUp = "MonitorClickLeftUp:";        // 左クリック離したとき
+            public static readonly string MonitorClickRightDown = "MonitorClickRightDown:";  // 右クリック押したとき
+            public static readonly string MonitorClickRightUp = "MonitorClickRightUp:";      // 右クリック離したとき
+            public static readonly string MonitorDblClickLeft = "MonitorClickDblLeft:";      // 左ダブルクリック
+            public static readonly string MonitorDblClickRight = "MonitorClickDblRight:";    // 右ダブルクリック
         }
 
         static class LockFlg
@@ -68,14 +87,6 @@ namespace RemoteKun
                 get { lock (lockObj) return conectFlg; }
                 set { lock (lockObj) conectFlg = value; }
             }
-        }
-
-        public MainForm()
-        {
-            LockFlg.ConectFlg = false;
-            LockFlg.SendMonitorFlg = false;
-            mPoint = new MousePoint();
-            InitializeComponent();
         }
 
         // テキストボックスの不正入力をチェック
@@ -100,6 +111,7 @@ namespace RemoteKun
         void ClientReset()
         {
             pictureBox.Image = null;
+            LockFlg.SendMonitorFlg = false;
             LockFlg.ConectFlg = false;
             startButton.Text = "開始";
             client?.Close();
@@ -139,35 +151,33 @@ namespace RemoteKun
             {
                 client = new TcpClient();
                 await client.ConnectAsync(ipAddr, Convert.ToInt32(port));
-                msgListBox.Items.Add("サーバーに接続しました。");
+                statusLabel.Text = "サーバーに接続しました。";
             }
-            catch (System.Net.Sockets.SocketException ex)
+            catch (System.Net.Sockets.SocketException)
             {
-                msgListBox.Items.Add("サーバーに接続できませんでした。");
+                statusLabel.Text = "サーバーに接続できませんでした。";
                 ClientReset();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                msgListBox.Items.Add(ex.Message);
                 ClientReset();
             }
         }
 
         // メッセージ送信
-        async Task sendMessageAsync(Protocol ptl, string sendMsg = null)
+        async Task sendMessageAsync(Oder ptl, string sendMsg = null)
         {
             string msg = ptl.Type + sendMsg;
             byte[] sendBuff = Encoding.UTF8.GetBytes(msg);
             ns = client.GetStream();
             await ns.WriteAsync(sendBuff, 0, sendBuff.Length);
-            await Task.Delay(300); // 遅延必須
         }
 
         // メッセージ送信ボタン
         private async void sendMsgButton_Click(object sender, EventArgs e)
         {
             if (!LockFlg.ConectFlg) return;
-            await sendMessageAsync(new Protocol(TypeProtocol.Message), msgTextBox.Text);
+            await sendMessageAsync(new Oder(OderKind.Message), msgTextBox.Text);
         }
 
         // 画面リクエストボタン
@@ -182,13 +192,13 @@ namespace RemoteKun
             if(!LockFlg.SendMonitorFlg)
             {
                 pictureBox.Enabled = false;
-                await sendMessageAsync(new Protocol(TypeProtocol.StopGetMonitor));
+                await sendMessageAsync(new Oder(OderKind.StopGetMonitor));
                 return;
             }
 
             pictureBox.Enabled = true;
             await Task.Run(async () => {
-                await sendMessageAsync(new Protocol(TypeProtocol.GetMonitor)); // 画面をリクエスト
+                await sendMessageAsync(new Oder(OderKind.GetMonitor)); // 画面をリクエスト
                 try
                 {
                     while (LockFlg.SendMonitorFlg)
@@ -203,101 +213,68 @@ namespace RemoteKun
                 catch (System.IO.IOException) 
                 { 
                     Invoke(new Action(() => { 
-                        msgListBox.Items.Add("通信が切断されました。");
-                        ClientReset();
+                        statusLabel.Text = "通信が切断されました。";
                     }));
                 }
                 catch (System.InvalidOperationException)
                 {
                     Invoke(new Action(() => {
-                        msgListBox.Items.Add("通信が確立されていません。");
-                        ClientReset();
+                        statusLabel.Text = "通信が確立されていません。";
                     }));
                 }
-                catch (Exception ex)
+                catch (Exception) { }
+                finally
                 {
-                    Invoke(new Action(() => {
-                        msgListBox.Items.Add(ex.Message);
-                        ClientReset();
-                    }));
+                    ClientReset();
                 }
             });
         }
 
-
-        // 画面ダブルクリック
-        private async void pictureBox_MouseDoubleClick(object sender, MouseEventArgs e)
+        // ピクチャーボックスのマウス座標をサーバーのマウス座標へ変換
+        (string x, string y) ConvertPoint(int x, int y)
         {
-            if (!LockFlg.ConectFlg) return;
-
-            bool leftButtonFlg = MouseButtons.None != (e.Button & MouseButtons.Left);
-            bool rightButtonFlg = MouseButtons.None != (e.Button & MouseButtons.Right);
-
-            if (leftButtonFlg)
-            {
-                // 1920 x 1080モニターを想定
-                // ピクチャーボックス(画面)をクリックした時の座標をサーバー画面に反映させる為の計算
-                string x = Convert.ToString((int)((1920.0 / pictureBox.Width) * e.X));
-                string y = Convert.ToString((int)((1080.0 / pictureBox.Height) * e.Y));
-                await sendMessageAsync(new Protocol(TypeProtocol.MonitorDblClickLeft), $"{x}:{y}");
-            }
-
-            if (rightButtonFlg)
-            {
-                string x = Convert.ToString((int)((1920.0 / pictureBox.Width) * e.X));
-                string y = Convert.ToString((int)((1080.0 / pictureBox.Height) * e.Y));
-                await sendMessageAsync(new Protocol(TypeProtocol.MonitorDblClickRight), $"{x}:{y}");
-            }
+            int resultX = (int)(((float)Res.X / (float)pictureBox.Width) * (float)x);
+            int resultY = (int)(((float)Res.Y / (float)pictureBox.Height) * (float)y);
+            return (Convert.ToString(resultX), Convert.ToString(resultY));
         }
 
-        // 画面上 クリックボタン押す
+        async Task SendPointAsync(string protocol, MouseEventArgs e)
+        {
+            (string x, string y) = ConvertPoint(e.X, e.Y);
+            await sendMessageAsync(new Oder(protocol), $"{x}:{y}");
+        }
+
         private async void pictureBox_MouseDown(object sender, MouseEventArgs e)
         {
             if (!LockFlg.ConectFlg) return;
-
-            bool leftButtonFlg = MouseButtons.None != (e.Button & MouseButtons.Left);
-            bool rightButtonFlg = MouseButtons.None != (e.Button & MouseButtons.Right);
-
-            if (leftButtonFlg)
-            {
-                string x = Convert.ToString((int)((1920.0 / pictureBox.Width) * e.X));
-                string y = Convert.ToString((int)((1080.0 / pictureBox.Height) * e.Y));
-                await sendMessageAsync(new Protocol(TypeProtocol.MonitorClickLeftDown), $"{x}:{y}");
-                return;
-            }
-
-
-            if (rightButtonFlg)
-            {
-                string x = Convert.ToString((int)((1920.0 / pictureBox.Width) * e.X));
-                string y = Convert.ToString((int)((1080.0 / pictureBox.Height) * e.Y));
-                await sendMessageAsync(new Protocol(TypeProtocol.MonitorClickRightDown), $"{x}:{y}");
-                return;
-            }
+            if (MouseButtons.None != (e.Button & MouseButtons.Left))
+                await SendPointAsync(OderKind.MonitorClickLeftDown, e);
+            if (MouseButtons.None != (e.Button & MouseButtons.Right))
+                await SendPointAsync(OderKind.MonitorClickRightDown, e);
         }
 
-        // 画面上 クリックボタン離す
         private async void pictureBox_MouseUp(object sender, MouseEventArgs e)
         {
             if (!LockFlg.ConectFlg) return;
+            if (MouseButtons.None != (e.Button & MouseButtons.Left))
+                await SendPointAsync(OderKind.MonitorClickLeftUp, e);
+            if (MouseButtons.None != (e.Button & MouseButtons.Right))
+                await SendPointAsync(OderKind.MonitorClickRightUp, e);
+        }
 
-            bool leftButtonFlg = MouseButtons.None != (e.Button & MouseButtons.Left);
-            bool rightButtonFlg = MouseButtons.None != (e.Button & MouseButtons.Right);
+        private async void pictureBox_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (!LockFlg.ConectFlg) return;
+            await SendPointAsync(OderKind.MonitorMouseMove, e);
+        }
 
-            if (leftButtonFlg)
-            {
-                string x = Convert.ToString((int)((1920.0 / pictureBox.Width) * e.X));
-                string y = Convert.ToString((int)((1080.0 / pictureBox.Height) * e.Y));
-                await sendMessageAsync(new Protocol(TypeProtocol.MonitorClickLeftUp), $"{x}:{y}");
-            }
-
-
-            if (rightButtonFlg)
-            {
-                string x = Convert.ToString((int)((1920.0 / pictureBox.Width) * e.X));
-                string y = Convert.ToString((int)((1080.0 / pictureBox.Height) * e.Y));
-                await sendMessageAsync(new Protocol(TypeProtocol.MonitorClickRightUp), $"{x}:{y}");
-            }
+        private async void pictureBox_MouseWheel(object sender, MouseEventArgs e)
+        {
+            if (!LockFlg.ConectFlg) return;
+            if (e.Delta < 0)
+                await sendMessageAsync(new Oder(OderKind.MouseWheelDown));
+            else
+                await sendMessageAsync(new Oder(OderKind.MouseWheelUp));
         }
     }
 }

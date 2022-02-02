@@ -17,23 +17,14 @@ namespace RemoteKunServer
 
     public partial class MainForm : Form
     {
-        // マウスカーソルを移動させる為の関数
-        [DllImport("USER32.dll", CallingConvention = CallingConvention.StdCall)]
-        static extern void SetCursorPos(int X, int Y);
-
-        // マウスイベントを発生させる為の関数
-        [DllImport("USER32.dll", CallingConvention = CallingConvention.StdCall)]
-        static extern void mouse_event(int dwFlags, int dx, int dy, int cButtons, int dwExtraInfo);
-
         NetworkStream ns = null;
         TcpClient tc = null;
         TcpListener tl = null;
 
-        static class LockFlg 
+        static class Flag 
         {
             static object lockObj = new object();
-            static bool sendMonitorFlg;
-            // 送信中
+            static bool sendMonitorFlg; // 画面送信中
             static public bool SendMonitorFlg 
             {
                 get { lock(lockObj) return sendMonitorFlg; }
@@ -41,30 +32,26 @@ namespace RemoteKunServer
             }
         }
 
-
-        static class Order
+        // 受信命令の種類
+        // 座標なし命令の場合 命令の種類:
+        // 座標あり命令の場合 命令の種類:X座標:Y座標
+        static class OrderKind
         {
-            static string monitorClick = "MonitorClick";
-            public static readonly string Message = "Message:";
-            public static readonly string GetMonitor = "GetMonitor:";
-            public static readonly string StopGetMonitor = "StopGetMonitor:";
-            public static readonly string MonitorClickLeftDown = monitorClick + "LeftDown:";
-            public static readonly string MonitorClickLeftUp = monitorClick + "LeftUp:";
-            public static readonly string MonitorClickRightDown = monitorClick + "RightDown:";
-            public static readonly string MonitorClickRightUp = monitorClick + "RightUp:";
-            public static readonly string MonitorDblClickLeft = monitorClick + "DblLeft:";
-            public static readonly string MonitorDblClickRight = monitorClick + "DblRight:";
+            public static readonly string MouseWheelUp = "MouseWheelUp:";                    // マウスホイール上
+            public static readonly string MouseWheelDown = "MouseWheelDown:";                // マウスホイール下
+            public static readonly string MonitorMouseMove = "MouseMove:";                   // マウス移動
+            public static readonly string Message = "Message:";                              // メッセージ
+            public static readonly string GetMonitor = "GetMonitor:";                        // 画面要求命令
+            public static readonly string StopGetMonitor = "StopGetMonitor:";                // 画面送信停止命令
+            public static readonly string MonitorClickLeftDown = "MonitorClickLeftDown:";    // 左クリック押したとき
+            public static readonly string MonitorClickLeftUp = "MonitorClickLeftUp:";        // 左クリック離したとき
+            public static readonly string MonitorClickRightDown = "MonitorClickRightDown:";  // 右クリック押したとき
+            public static readonly string MonitorClickRightUp = "MonitorClickRightUp:";      // 右クリック離したとき
+            public static readonly string MonitorDblClickLeft = "MonitorClickDblLeft:";      // 左ダブルクリック
+            public static readonly string MonitorDblClickRight = "MonitorClickDblRight:";    // 右ダブルクリック
         }
 
-        // クリックイベント
-        static class MouseEvent
-        {
-            public static readonly int MOUSEEVENTF_LEFTDOWN = 0x0002;
-            public static readonly int MOUSEEVENTF_LEFTUP = 0x0004;
-            public static readonly int MOUSEEVENTF_RIGHTDOWN = 0x0008;
-            public static readonly int MOUSEEVENTF_RIGHTUP = 0x0010;
-        }
-
+        // マウス座標
         enum MousePoint
         {
             X = 1,
@@ -82,7 +69,6 @@ namespace RemoteKunServer
             byte[] getBuff = new byte[getBuffSize];
             int readByteSize; // 受け取ったメッセージのサイズ
             string getByteStr = null;　// 受け取ったメッセージ
-
             readByteSize = await ns.ReadAsync(getBuff, 0, getBuff.Length);
             if (readByteSize == 0) return null;
             getByteStr = Encoding.UTF8.GetString(getBuff, 0, readByteSize);
@@ -109,76 +95,131 @@ namespace RemoteKunServer
         }
 
         // 受信命令の実行
-        void GetOrderRun(string res)
+        void GetOrderRun(string getOrder)
         {
-            if (res.StartsWith(Order.Message)) // テキストを受信
+            Regex orderParameter = new Regex(@"^[a-zA-Z]+\:\d+\:\d+$");
+
+            // 座標付きの命令に使う
+            string[] rsvStr;
+            int pointX, pointY;
+            string getOdrPoint = orderParameter.Match(getOrder).ToString();
+
+            // テキストメッセージを受信した場合
+            if (getOrder.StartsWith(OrderKind.Message)) 
             {
-                Invoke(new Action(() => msgListBox.Items.Add(res.Replace(Order.Message, ""))));
+                Invoke(new Action(() => msgListBox.Items.Add(getOrder.Replace(OrderKind.Message, ""))));
                 return;
             }
 
-            // デスクトップ画面送信終了命令受信
-            if (res.StartsWith(Order.StopGetMonitor)) 
+            // デスクトップ画面送信終了命令
+            if (getOrder.StartsWith(OrderKind.StopGetMonitor)) 
             {
-                LockFlg.SendMonitorFlg = false;
+                Flag.SendMonitorFlg = false;
                 return;
             }
 
-            // デスクトップ画面送信開始命令受信
-            if (res.StartsWith(Order.GetMonitor)) 
+            // デスクトップ画面送信開始命令
+            if (getOrder.StartsWith(OrderKind.GetMonitor)) 
             {
-                LockFlg.SendMonitorFlg = true;
+                Flag.SendMonitorFlg = true;
                 Task.Run(async () => {
-                    while (LockFlg.SendMonitorFlg)
+                    while (Flag.SendMonitorFlg)
                     {
                         await sendDesktopAsync();
-                        await Task.Delay(340);
+                        await Task.Delay(100);
                     }
                 });
                 return;
             }
 
-            // 左クリック(押す)命令受信
-            if (res.StartsWith(Order.MonitorClickLeftDown))
+            // マウスホイール上方向命令
+            if (getOrder.StartsWith(OrderKind.MouseWheelUp))
             {
-                string[] rsvStr = res.Split(':');
-                int pointX = Convert.ToInt32(rsvStr[(int)MousePoint.X]);
-                int pointY = Convert.ToInt32(rsvStr[(int)MousePoint.Y]);
-                SetCursorPos(pointX, pointY);
-                mouse_event(MouseEvent.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+                WindowsAPI.INPUT input = new WindowsAPI.INPUT
+                {
+                    type = WindowsAPI.INPUT_MOUSE,
+                    ui = new WindowsAPI.INPUT_UNION
+                    {
+                        mouse = new WindowsAPI.MOUSEINPUT
+                        {
+                            dwFlags = WindowsAPI.MOUSEEVENTF_WHEEL,
+                            dx = 0,
+                            dy = 0,
+                            mouseData = 120, // ホイール上方向
+                            dwExtraInfo = IntPtr.Zero,
+                            time = 0
+                        }
+                    }
+                };
+                WindowsAPI.SendInput(1, ref input, Marshal.SizeOf(input));
+            }
+
+            // マウスホイール下方向命令
+            if (getOrder.StartsWith(OrderKind.MouseWheelDown))
+            {
+                WindowsAPI.INPUT input = new WindowsAPI.INPUT
+                {
+                    type = WindowsAPI.INPUT_MOUSE,
+                    ui = new WindowsAPI.INPUT_UNION
+                    {
+                        mouse = new WindowsAPI.MOUSEINPUT
+                        {
+                            dwFlags = WindowsAPI.MOUSEEVENTF_WHEEL,
+                            dx = 0,
+                            dy = 0,
+                            mouseData = -120, // ホイール下方向
+                            dwExtraInfo = IntPtr.Zero,
+                            time = 0
+                        }
+                    }
+                };
+                WindowsAPI.SendInput(1, ref input, Marshal.SizeOf(input));
+            }
+
+            // 座標付き命令の書式が一致しない場合
+            if (!orderParameter.IsMatch(getOrder)) 
+                return;
+
+            rsvStr = getOdrPoint.Split(':');
+            pointX = Convert.ToInt32(rsvStr[(int)MousePoint.X]);
+            pointY = Convert.ToInt32(rsvStr[(int)MousePoint.Y]);
+
+            // マウス移動命令受信
+            if (getOrder.StartsWith(OrderKind.MonitorMouseMove))
+            {
+                WindowsAPI.SetCursorPos(pointX, pointY);
+                return;
+            }
+
+            // 左クリック(押す)命令受信
+            if (getOrder.StartsWith(OrderKind.MonitorClickLeftDown))
+            {
+                WindowsAPI.SetCursorPos(pointX, pointY);
+                WindowsAPI.mouse_event(WindowsAPI.MouseEvent.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
                 return;
             }
 
             // 左クリック(離す)命令受信
-            if (res.StartsWith(Order.MonitorClickLeftUp))
+            if (getOrder.StartsWith(OrderKind.MonitorClickLeftUp))
             {
-                string[] rsvStr = res.Split(':');
-                int pointX = Convert.ToInt32(rsvStr[(int)MousePoint.X]);
-                int pointY = Convert.ToInt32(rsvStr[(int)MousePoint.Y]);
-                SetCursorPos(pointX, pointY);
-                mouse_event(MouseEvent.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+                WindowsAPI.SetCursorPos(pointX, pointY);
+                WindowsAPI.mouse_event(WindowsAPI.MouseEvent.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
                 return;
             }
 
             // 右クリック(押す)命令受信
-            if (res.StartsWith(Order.MonitorClickRightDown))
+            if (getOrder.StartsWith(OrderKind.MonitorClickRightDown))
             {
-                string[] rsvStr = res.Split(':');
-                int pointX = Convert.ToInt32(rsvStr[(int)MousePoint.X]);
-                int pointY = Convert.ToInt32(rsvStr[(int)MousePoint.Y]);
-                SetCursorPos(pointX, pointY);
-                mouse_event(MouseEvent.MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0);
+                WindowsAPI.SetCursorPos(pointX, pointY);
+                WindowsAPI.mouse_event(WindowsAPI.MouseEvent.MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0);
                 return;
             }
 
             // 左クリック(離す)命令受信
-            if (res.StartsWith(Order.MonitorClickRightUp))
+            if (getOrder.StartsWith(OrderKind.MonitorClickRightUp))
             {
-                string[] rsvStr = res.Split(':');
-                int pointX = Convert.ToInt32(rsvStr[(int)MousePoint.X]);
-                int pointY = Convert.ToInt32(rsvStr[(int)MousePoint.Y]);
-                SetCursorPos(pointX, pointY);
-                mouse_event(MouseEvent.MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0);
+                WindowsAPI.SetCursorPos(pointX, pointY);
+                WindowsAPI.mouse_event(WindowsAPI.MouseEvent.MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0);
                 return;
             }
         }
@@ -186,18 +227,29 @@ namespace RemoteKunServer
         // 画面読み込み時
         private async void MainForm_Load(object sender, EventArgs e)
         {
-            tl = new TcpListener(System.Net.IPAddress.Any, 12345); // 全てのアドレスから受け付ける
-            tl.Start();
-            tc = await tl.AcceptTcpClientAsync(); // 接続確立
-            msgListBox.Items.Add("接続完了");
-            await Task.Run(async () => {
-                while (true)
+            while (true)
+            {
+                try
                 {
-                    string res = await GetOrder(); // クライアントから命令を受け取る
-                    if (res == null) continue; // 命令がなければ繰り返す
-                    GetOrderRun(res); // 受信した命令を実行
+                    tl = new TcpListener(System.Net.IPAddress.Any, 12345); // 全てのアドレスから受け付ける
+                    tl.Start();
+                    tc = await tl.AcceptTcpClientAsync(); // 接続確立
+                    msgListBox.Items.Add("接続完了");
+                    ns = tc.GetStream();
+                    await Task.Run(async () => {
+                        while (true)
+                        {
+                            string res = await GetOrder(); // クライアントから命令を受け取る
+                            if (res == null) continue; // 命令がなければ繰り返す
+                            GetOrderRun(res); // 受信した命令を実行
+                        }
+                    });
                 }
-            });
+                catch (Exception ex)
+                {
+                    msgListBox.Items.Add(ex.Message);
+                }
+            }
         }
     }
 }

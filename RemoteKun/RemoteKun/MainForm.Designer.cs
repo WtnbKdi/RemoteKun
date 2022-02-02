@@ -36,27 +36,32 @@
             this.portTextBox = new System.Windows.Forms.TextBox();
             this.msgTextBox = new System.Windows.Forms.TextBox();
             this.sendMsgButton = new System.Windows.Forms.Button();
-            this.msgListBox = new System.Windows.Forms.ListBox();
             this.desktopReqButton = new System.Windows.Forms.Button();
             this.label2 = new System.Windows.Forms.Label();
+            this.label3 = new System.Windows.Forms.Label();
+            this.statusLabel = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox)).BeginInit();
             this.SuspendLayout();
             // 
             // pictureBox
             // 
+            this.pictureBox.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.pictureBox.BackColor = System.Drawing.SystemColors.ButtonShadow;
             this.pictureBox.Location = new System.Drawing.Point(12, 59);
             this.pictureBox.Name = "pictureBox";
-            this.pictureBox.Size = new System.Drawing.Size(992, 516);
+            this.pictureBox.Size = new System.Drawing.Size(992, 595);
             this.pictureBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.pictureBox.TabIndex = 0;
             this.pictureBox.TabStop = false;
-            this.pictureBox.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.pictureBox_MouseDoubleClick);
             this.pictureBox.MouseDown += new System.Windows.Forms.MouseEventHandler(this.pictureBox_MouseDown);
+            this.pictureBox.MouseMove += new System.Windows.Forms.MouseEventHandler(this.pictureBox_MouseMove);
             this.pictureBox.MouseUp += new System.Windows.Forms.MouseEventHandler(this.pictureBox_MouseUp);
             // 
             // startButton
             // 
+            this.startButton.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.startButton.Location = new System.Drawing.Point(477, 4);
             this.startButton.Name = "startButton";
             this.startButton.Size = new System.Drawing.Size(101, 23);
@@ -116,20 +121,9 @@
             this.sendMsgButton.UseVisualStyleBackColor = true;
             this.sendMsgButton.Click += new System.EventHandler(this.sendMsgButton_Click);
             // 
-            // msgListBox
-            // 
-            this.msgListBox.FormattingEnabled = true;
-            this.msgListBox.ItemHeight = 12;
-            this.msgListBox.Location = new System.Drawing.Point(12, 581);
-            this.msgListBox.Name = "msgListBox";
-            this.msgListBox.RightToLeft = System.Windows.Forms.RightToLeft.No;
-            this.msgListBox.ScrollAlwaysVisible = true;
-            this.msgListBox.Size = new System.Drawing.Size(992, 52);
-            this.msgListBox.TabIndex = 8;
-            // 
             // desktopReqButton
             // 
-            this.desktopReqButton.Location = new System.Drawing.Point(612, 27);
+            this.desktopReqButton.Location = new System.Drawing.Point(584, 4);
             this.desktopReqButton.Name = "desktopReqButton";
             this.desktopReqButton.Size = new System.Drawing.Size(142, 23);
             this.desktopReqButton.TabIndex = 9;
@@ -146,14 +140,34 @@
             this.label2.TabIndex = 10;
             this.label2.Text = "メッセージ";
             // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(597, 38);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(52, 12);
+            this.label3.TabIndex = 11;
+            this.label3.Text = "ステータス:";
+            // 
+            // statusLabel
+            // 
+            this.statusLabel.AutoSize = true;
+            this.statusLabel.Location = new System.Drawing.Point(655, 38);
+            this.statusLabel.Name = "statusLabel";
+            this.statusLabel.Size = new System.Drawing.Size(29, 12);
+            this.statusLabel.TabIndex = 12;
+            this.statusLabel.Text = "none";
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1016, 645);
+            this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.ClientSize = new System.Drawing.Size(1015, 666);
+            this.Controls.Add(this.statusLabel);
+            this.Controls.Add(this.label3);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.desktopReqButton);
-            this.Controls.Add(this.msgListBox);
             this.Controls.Add(this.sendMsgButton);
             this.Controls.Add(this.msgTextBox);
             this.Controls.Add(this.portTextBox);
@@ -162,7 +176,9 @@
             this.Controls.Add(this.ipAddrTextBox);
             this.Controls.Add(this.startButton);
             this.Controls.Add(this.pictureBox);
+            this.KeyPreview = true;
             this.Name = "MainForm";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "RemoteKun";
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox)).EndInit();
             this.ResumeLayout(false);
@@ -180,9 +196,10 @@
         private System.Windows.Forms.TextBox portTextBox;
         private System.Windows.Forms.TextBox msgTextBox;
         private System.Windows.Forms.Button sendMsgButton;
-        private System.Windows.Forms.ListBox msgListBox;
         private System.Windows.Forms.Button desktopReqButton;
         private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.Label statusLabel;
     }
 }
 
