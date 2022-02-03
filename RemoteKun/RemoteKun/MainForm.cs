@@ -210,7 +210,7 @@ namespace RemoteKun
                 await sendCommandAsync(new Command(CommandKind.GetMonitor)); // 画面をリクエスト
                 try
                 {
-                    while (Flag.IsReceivingMonitor)
+                    while (Flag.IsReceivingMonitor) // 受け取った画面データをピクチャーボックスに表示
                     {
                         image = new byte[sendSize];
                         await ns.ReadAsync(image, 0, image.Length);
