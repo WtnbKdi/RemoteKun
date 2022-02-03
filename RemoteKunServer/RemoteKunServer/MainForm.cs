@@ -94,6 +94,30 @@ namespace RemoteKunServer
             await ns.WriteAsync(sendBuff, 0, sendBuff.Length);
         }
 
+        // ホイール入力情報
+        WindowsAPI.INPUT makeWheelInput(int vector, int step = 1)
+        {
+            WindowsAPI.INPUT input = new WindowsAPI.INPUT
+            {
+                type = WindowsAPI.INPUT_MOUSE,
+                ui = new WindowsAPI.INPUT_UNION
+                {
+                    mouse = new WindowsAPI.MOUSEINPUT
+                    {
+                        dwFlags = WindowsAPI.MOUSEEVENTF_WHEEL,
+                        dx = 0,
+                        dy = 0,
+                        mouseData = 120 * vector * step, // 正数:ホイール上方向 負数:下方向 step:ホイール感度
+                        dwExtraInfo = IntPtr.Zero,
+                        time = 0
+                    }
+                }
+            };
+
+            return input;
+        }
+
+
         // 受信命令の実行
         void GetCommandRun(string getCommand)
         {
@@ -135,48 +159,18 @@ namespace RemoteKunServer
             // マウスホイール上方向命令
             if (getCommand.StartsWith(CommandKind.MouseWheelUp))
             {
-                WindowsAPI.INPUT input = new WindowsAPI.INPUT
-                {
-                    type = WindowsAPI.INPUT_MOUSE,
-                    ui = new WindowsAPI.INPUT_UNION
-                    {
-                        mouse = new WindowsAPI.MOUSEINPUT
-                        {
-                            dwFlags = WindowsAPI.MOUSEEVENTF_WHEEL,
-                            dx = 0,
-                            dy = 0,
-                            mouseData = 120, // ホイール上方向
-                            dwExtraInfo = IntPtr.Zero,
-                            time = 0
-                        }
-                    }
-                };
+                WindowsAPI.INPUT input = makeWheelInput(1);
                 WindowsAPI.SendInput(1, ref input, Marshal.SizeOf(input));
             }
 
             // マウスホイール下方向命令
             if (getCommand.StartsWith(CommandKind.MouseWheelDown))
             {
-                WindowsAPI.INPUT input = new WindowsAPI.INPUT
-                {
-                    type = WindowsAPI.INPUT_MOUSE,
-                    ui = new WindowsAPI.INPUT_UNION
-                    {
-                        mouse = new WindowsAPI.MOUSEINPUT
-                        {
-                            dwFlags = WindowsAPI.MOUSEEVENTF_WHEEL,
-                            dx = 0,
-                            dy = 0,
-                            mouseData = -120, // ホイール下方向
-                            dwExtraInfo = IntPtr.Zero,
-                            time = 0
-                        }
-                    }
-                };
+                WindowsAPI.INPUT input = makeWheelInput(-1);
                 WindowsAPI.SendInput(1, ref input, Marshal.SizeOf(input));
             }
 
-            // 座標付き命令の書式が一致しない場合
+            // 座標月コマンドのフォーマットが一致しない場合
             if (!commandParameter.IsMatch(getCommand)) 
                 return;
 

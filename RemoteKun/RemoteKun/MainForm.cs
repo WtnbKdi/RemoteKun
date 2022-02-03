@@ -171,6 +171,7 @@ namespace RemoteKun
             }
             statusLabel.Text = "サーバーに接続しました。";
             Flag.IsConnected = true;
+            ns = client.GetStream();
         }
 
         // 命令送信
@@ -178,7 +179,7 @@ namespace RemoteKun
         {
             string msg = ptl.Type + sendMsg;
             byte[] sendBuff = Encoding.UTF8.GetBytes(msg);
-            ns = client.GetStream();
+            //ns = client.GetStream();
             await ns.WriteAsync(sendBuff, 0, sendBuff.Length);
         }
 
