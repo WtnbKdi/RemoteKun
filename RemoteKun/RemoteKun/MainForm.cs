@@ -174,7 +174,7 @@ namespace RemoteKun
         }
 
         // 命令送信
-        async Task sendOrderAsync(Command ptl, string sendMsg = null)
+        async Task sendCommandAsync(Command ptl, string sendMsg = null)
         {
             string msg = ptl.Type + sendMsg;
             byte[] sendBuff = Encoding.UTF8.GetBytes(msg);
@@ -186,7 +186,7 @@ namespace RemoteKun
         private async void sendMsgButton_Click(object sender, EventArgs e)
         {
             if (!Flag.IsConnected) return;
-            await sendOrderAsync(new Command(CommandKind.Message), msgTextBox.Text);
+            await sendCommandAsync(new Command(CommandKind.Message), msgTextBox.Text);
         }
 
         // 画面リクエストボタン
@@ -202,12 +202,12 @@ namespace RemoteKun
             if(!Flag.IsReceivingMonitor)
             {
                 pictureBox.Enabled = false;
-                await sendOrderAsync(new Command(CommandKind.StopGetMonitor));
+                await sendCommandAsync(new Command(CommandKind.StopGetMonitor));
                 return;
             }
             pictureBox.Enabled = true;
             await Task.Run(async () => {
-                await sendOrderAsync(new Command(CommandKind.GetMonitor)); // 画面をリクエスト
+                await sendCommandAsync(new Command(CommandKind.GetMonitor)); // 画面をリクエスト
                 try
                 {
                     while (Flag.IsReceivingMonitor)
@@ -215,7 +215,6 @@ namespace RemoteKun
                         image = new byte[sendSize];
                         await ns.ReadAsync(image, 0, image.Length);
                         monitor = new Bitmap(new MemoryStream(image));
-                        monitor.Save(new MemoryStream(image), System.Drawing.Imaging.ImageFormat.Jpeg);
                         pictureBox.Image = monitor;
                     }
                 }
@@ -253,7 +252,7 @@ namespace RemoteKun
         async Task SendPointAsync(string Command, MouseEventArgs e)
         {
             (string x, string y) = ConvertPoint(e.X, e.Y);
-            await sendOrderAsync(new Command(Command), $"{x}:{y}");
+            await sendCommandAsync(new Command(Command), $"{x}:{y}");
         }
 
         // ピクチャーボックス上でマウスボタンを押す
@@ -287,9 +286,9 @@ namespace RemoteKun
         {
             if (!Flag.IsConnected) return;
             if (e.Delta < 0)
-                await sendOrderAsync(new Command(CommandKind.MouseWheelDown));
+                await sendCommandAsync(new Command(CommandKind.MouseWheelDown));
             else
-                await sendOrderAsync(new Command(CommandKind.MouseWheelUp));
+                await sendCommandAsync(new Command(CommandKind.MouseWheelUp));
         }
     }
 }

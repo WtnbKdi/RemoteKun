@@ -127,7 +127,7 @@
             this.monitorReqButton.Name = "monitorReqButton";
             this.monitorReqButton.Size = new System.Drawing.Size(142, 23);
             this.monitorReqButton.TabIndex = 9;
-            this.monitorReqButton.Text = "画面リアルタイムキャプチャ";
+            this.monitorReqButton.Text = "相手の画面を表示";
             this.monitorReqButton.UseVisualStyleBackColor = true;
             this.monitorReqButton.Click += new System.EventHandler(this.monitorReqButton_Click);
             // 
