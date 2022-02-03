@@ -40,7 +40,7 @@ namespace RemoteKun
 
         class Resolution 
         {
-            // 画面解像度 フォルト1920x1080
+            // 画面解像度 デフォルト1920x1080
             public int X { get; } = 1920;
             public int Y { get; } = 1080;
             public Resolution() { }
@@ -52,7 +52,7 @@ namespace RemoteKun
         }
 
 
-        // サーバーへ対しての命令, 送信の種類
+        // サーバー操作用のコマンド
         class CommandKind
         {
             public static readonly string MouseWheelUp = "MouseWheelUp:";                    // マウスホイール上
