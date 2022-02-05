@@ -21,36 +21,6 @@ namespace RemoteKunServer
         TcpClient tc = null;
         TcpListener tl = null;
 
-        static class Flag 
-        {
-            static object lockObj = new object();
-            static bool isSendingMonitor ; // 画面送信中
-            static public bool IsSendingMonitor 
-            {
-                get { lock(lockObj) return isSendingMonitor; }
-                set { lock (lockObj) isSendingMonitor = value; }
-            }
-        }
-
-        // 受信命令の種類
-        // 座標なし命令の場合 命令の種類:
-        // 座標あり命令の場合 命令の種類:X座標:Y座標
-        static class CommandKind
-        {
-            public static readonly string MouseWheelUp = "MouseWheelUp:";                    // マウスホイール上
-            public static readonly string MouseWheelDown = "MouseWheelDown:";                // マウスホイール下
-            public static readonly string MonitorMouseMove = "MouseMove:";                   // マウス移動
-            public static readonly string Message = "Message:";                              // メッセージ
-            public static readonly string GetMonitor = "GetMonitor:";                        // 画面要求命令
-            public static readonly string StopGetMonitor = "StopGetMonitor:";                // 画面送信停止命令
-            public static readonly string MonitorClickLeftDown = "MonitorClickLeftDown:";    // 左クリック押したとき
-            public static readonly string MonitorClickLeftUp = "MonitorClickLeftUp:";        // 左クリック離したとき
-            public static readonly string MonitorClickRightDown = "MonitorClickRightDown:";  // 右クリック押したとき
-            public static readonly string MonitorClickRightUp = "MonitorClickRightUp:";      // 右クリック離したとき
-            public static readonly string MonitorDblClickLeft = "MonitorClickDblLeft:";      // 左ダブルクリック
-            public static readonly string MonitorDblClickRight = "MonitorClickDblRight:";    // 右ダブルクリック
-        }
-
         // マウス座標
         enum MousePoint
         {

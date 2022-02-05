@@ -13,7 +13,7 @@ namespace RemoteKun
     {
         TcpClient client = null;
         NetworkStream ns = null;
-        Resolution Res; // 画面解像度 
+        Resolution Res   = null; // 画面解像度 
 
         public MainForm()
         {
@@ -22,95 +22,6 @@ namespace RemoteKun
             Flag.IsReceivingMonitor = false;
             Res = new Resolution();
             this.pictureBox.MouseWheel += new System.Windows.Forms.MouseEventHandler(this.pictureBox_MouseWheel);
-        }
-        
-        static class ErrorMessage
-        {
-            public static readonly string IPAddr = "正しいIPアドレスを入力してください。";
-            public static readonly string Port = "正しいポート番号を入力してください。";
-        }
-
-        class Command
-        {
-            public Command() { }
-            public Command(string type) { Type = type; }
-            public string Type { get; private set; }
-        }
-
-
-        class Resolution 
-        {
-            // 画面解像度 デフォルト1920x1080
-            public int X { get; } = 1920;
-            public int Y { get; } = 1080;
-            public Resolution() { }
-            public Resolution(int x, int y) 
-            {
-                this.X = x;
-                this.Y = y;
-            }
-        }
-
-
-        // サーバー操作用のコマンド
-        class CommandKind
-        {
-            public static readonly string MouseWheelUp = "MouseWheelUp:";                    // マウスホイール上
-            public static readonly string MouseWheelDown = "MouseWheelDown:";                // マウスホイール下
-            public static readonly string MonitorMouseMove = "MouseMove:";                   // マウス移動
-            public static readonly string Message = "Message:";                              // メッセージ
-            public static readonly string GetMonitor = "GetMonitor:";                        // 画面要求命令
-            public static readonly string StopGetMonitor = "StopGetMonitor:";                // 画面送信停止命令
-            public static readonly string MonitorClickLeftDown = "MonitorClickLeftDown:";    // 左クリック押したとき
-            public static readonly string MonitorClickLeftUp = "MonitorClickLeftUp:";        // 左クリック離したとき
-            public static readonly string MonitorClickRightDown = "MonitorClickRightDown:";  // 右クリック押したとき
-            public static readonly string MonitorClickRightUp = "MonitorClickRightUp:";      // 右クリック離したとき
-            public static readonly string MonitorDblClickLeft = "MonitorClickDblLeft:";      // 左ダブルクリック
-            public static readonly string MonitorDblClickRight = "MonitorClickDblRight:";    // 右ダブルクリック
-        }
-
-        static class Flag
-        {
-            static object lockObj = new object();
-            static bool isConnecting;
-            static bool isConnected;
-            static bool isReceivingMonitor;
-            // モニター受信中
-            static public bool IsReceivingMonitor
-            {
-                get { lock (lockObj) return isReceivingMonitor; }
-                set { lock (lockObj) isReceivingMonitor = value; }
-            }
-            // 接続中
-            static public bool IsConnecting
-            {
-                get { lock (lockObj) return isConnecting; }
-                set { lock (lockObj) isConnecting = value; }
-            }
-            // 接続確立
-            static public bool IsConnected
-            {
-                get { lock (lockObj) return isConnected; }
-                set { lock (lockObj) isConnected = value; }
-            }
-        }
-
-        // テキストボックスの不正入力をチェック
-        static class CheckString
-        {
-            // IPアドレスのフォーマットをチェック
-            public static bool ipAddr(string ipAddrStr)
-            {
-                Regex chkIPaddr = new Regex(@"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$");
-                return chkIPaddr.IsMatch(ipAddrStr);
-            }
-
-            // ポート番号をチェック
-            public static bool port(string portStr)
-            {
-                int port = Convert.ToInt32(portStr);
-                return 0 <= port && port <= 65535;
-            }
         }
         
         // 初期化
@@ -179,7 +90,6 @@ namespace RemoteKun
         {
             string msg = ptl.Type + sendMsg;
             byte[] sendBuff = Encoding.UTF8.GetBytes(msg);
-            //ns = client.GetStream();
             await ns.WriteAsync(sendBuff, 0, sendBuff.Length);
         }
 
@@ -211,8 +121,9 @@ namespace RemoteKun
                 await sendCommandAsync(new Command(CommandKind.GetMonitor)); // 画面をリクエスト
                 try
                 {
-                    while (Flag.IsReceivingMonitor) // 受け取った画面データをピクチャーボックスに表示
+                    while (Flag.IsReceivingMonitor)
                     {
+                        // 受け取った画面データをピクチャーボックスに表示
                         image = new byte[sendSize];
                         await ns.ReadAsync(image, 0, image.Length);
                         monitor = new Bitmap(new MemoryStream(image));
