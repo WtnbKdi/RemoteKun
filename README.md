@@ -8,5 +8,5 @@ LANで使えるリモートツールです。
 # 実行動画
 https://youtu.be/gDBdFey4ds8
 # スクリーンショット
-![remote](https://user-images.githubusercontent.com/98020159/152095825-7c58b8ea-d1c5-49cc-9abf-43ab287710fc.png)
+![remote](https://user-images.githubusercontent.com/98020159/158989303-4ee0352d-5a1d-4482-8174-8a20f9a54ac9.png)
 
